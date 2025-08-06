@@ -23,9 +23,11 @@ int main()
             break;
         }
 
+        
 
         printf("%s\n", line_read);
         
+        // Free allocated space.
         free(line_read);
     } while (true);
 
