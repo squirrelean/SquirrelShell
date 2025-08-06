@@ -1,0 +1,17 @@
+# Build artifacts.
+/build/
+*.o
+*.out
+*.exe
+
+# GDB Core Dumps.
+core
+
+# Log files.
+*.log
+
+# Editor.
+*~
+*.swp
+*.swo
+.vscode/
