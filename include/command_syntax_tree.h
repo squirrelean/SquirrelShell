@@ -6,8 +6,7 @@ typedef enum
     NODE_COMMAND,
     NODE_SEQUENCE,
     NODE_PIPELINE,
-    NODE_REDIRECT,
-    NODE_BACKGROUND
+    NODE_REDIRECT
 } NodeType;
 
 typedef enum
@@ -35,11 +34,6 @@ typedef struct
     RedirectType redirect_type;
 } RedirectNode;
 
-typedef struct
-{
-    struct ASTNode *child;
-} BackgroundNode;
-
 typedef struct ASTNode
 {
     NodeType type;
@@ -49,7 +43,6 @@ typedef struct ASTNode
         CommandNode command;
         BinaryNode binary;
         RedirectNode redirect;
-        BackgroundNode background;
     };
     
 } ASTNode;

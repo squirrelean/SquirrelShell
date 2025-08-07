@@ -36,12 +36,7 @@ Token* tokenize(char *line, int *token_count)
             token.value = "|";
             i++;
         }
-        else if (ch == '&')
-        {
-            token.type = TOKEN_BACKGROUND;
-            token.value = "&";
-            i++;
-        }
+        
         else if (ch == ';')
         {
             token.type = TOKEN_SEMICOLON;
@@ -103,7 +98,7 @@ Token* tokenize(char *line, int *token_count)
             else
             {
                 printf("Improper quotation use\n");
-                free_tokens(tokens, *token_count);
+                free(tokens);
                 return NULL;
             }
         }
@@ -112,7 +107,7 @@ Token* tokenize(char *line, int *token_count)
             // Handle regular word.
             int word_len = 0;
             int start = i;
-            while (line[i] != '\0' && !isspace(line[i]) && !strchr("<>|&;", line[i]))
+            while (line[i] != '\0' && !isspace(line[i]) && !strchr("<>|;", line[i]))
             {
                 word_len++;
                 i++;
