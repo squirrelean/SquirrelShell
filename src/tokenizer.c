@@ -1,8 +1,13 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include "tokenizer.h"
+
+// Prototypes
+bool append_token(Token **tokens, Token token, int *token_count, int *tokens_capacity);
+void free_tokens(Token *tokens, int count);
 
 // Returns NULL on error.
 Token* tokenize(char *line, int *token_count)
@@ -30,19 +35,48 @@ Token* tokenize(char *line, int *token_count)
 
         Token token;
 
-        if (ch == '|')
+        if (ch != '\0' && ch == '&' && line[i + 1] == '&')
+        {
+            token.type = TOKEN_AND;
+            token.value = strdup("&&");
+            i += 2;
+        }
+
+        else if (ch != '\0' && ch == '|' && line[i + 1] == '|')
+        {
+            token.type = TOKEN_OR;
+            token.value = strdup("||");
+            i += 2;
+        }
+
+        else if (ch == '|')
         {
             token.type = TOKEN_PIPE;
-            token.value = "|";
+            token.value = strdup("|");
             i++;
         }
         
         else if (ch == ';')
         {
             token.type = TOKEN_SEMICOLON;
-            token.value = ";";
+            token.value = strdup(";");
             i++;
         }
+
+        else if (ch == '(')
+        {
+            token.type = TOKEN_OPEN_PAREN;
+            token.value = strdup("(");
+            i++;
+        }
+
+        else if (ch == ')')
+        {
+            token.type = TOKEN_CLOSE_PAREN;
+            token.value = strdup(")");
+            i++;
+        }
+
         else if (ch == '<' || ch == '>')
         {
             char next_ch = line[i + 1];
@@ -50,19 +84,19 @@ Token* tokenize(char *line, int *token_count)
             if (ch == '>' && next_ch == '>')
             {
                 token.type = TOKEN_APPEND_REDIRECT;
-                token.value = ">>";
-                i+=2;
+                token.value = strdup(">>");
+                i += 2;
             }
             else if (ch == '>')
             {
                 token.type = TOKEN_OUTPUT_REDIRECT;
-                token.value = ">";
+                token.value = strdup(">");
                 i++;
             }
             else
             {
                 token.type = TOKEN_INPUT_REDIRECT;
-                token.value = "<";
+                token.value = strdup("<");
                 i++;
             }
         }
@@ -97,9 +131,25 @@ Token* tokenize(char *line, int *token_count)
             }
             else
             {
-                printf("Improper quotation use\n");
-                free(tokens);
-                return NULL;
+                fprintf(stderr, "Improper quotation\n");
+
+                token.type = TOKEN_INVALID;
+                token.value = NULL;
+                if (!append_token(&tokens, token, token_count, &tokens_capacity))
+                {
+                    free_tokens(tokens, *token_count);
+                    return NULL;
+                }
+
+                Token eof_token;
+                eof_token.type = TOKEN_EOF;
+                eof_token.value = NULL;
+                if (!append_token(&tokens, eof_token, token_count, &tokens_capacity))
+                {
+                    free_tokens(tokens, *token_count);
+                    return NULL;
+                }
+                return tokens;
             }
         }
         else
@@ -107,7 +157,7 @@ Token* tokenize(char *line, int *token_count)
             // Handle regular word.
             int word_len = 0;
             int start = i;
-            while (line[i] != '\0' && !isspace(line[i]) && !strchr("<>|;", line[i]))
+            while (line[i] != '\0' && !isspace(line[i]) && !strchr("<>()|;", line[i]))
             {
                 word_len++;
                 i++;
@@ -127,37 +177,55 @@ Token* tokenize(char *line, int *token_count)
         }
 
         // Allocate space for additional tokens.
-        if (*token_count >= tokens_capacity)
+        if (!append_token(&tokens, token, token_count, &tokens_capacity))
         {
-            tokens_capacity *= 2;
-            Token *temp_tokens = realloc(tokens, tokens_capacity * sizeof(Token));
-            if (!temp_tokens)
-            {
-                perror("realloc failure tokenizer");
-                free_tokens(tokens, *token_count);
-                return NULL;
-            }
-            tokens = temp_tokens;
+            free_tokens(tokens, *token_count);
+            return NULL;
         }
+    }
 
-        tokens[*token_count] = token;
-        (*token_count)++;
+    // Append EOF indicator token.
+    Token eof_token;
+    eof_token.type = TOKEN_EOF;
+    eof_token.value = NULL;
+    if (!append_token(&tokens, eof_token, token_count, &tokens_capacity))
+    {
+        free_tokens(tokens, *token_count);
+        return NULL;
     }
 
     return tokens;
+}
+
+
+// Function returns true on successful reallocation.
+bool append_token(Token **tokens, Token token, int *token_count, int *tokens_capacity)
+{
+    if (*token_count >= *tokens_capacity)
+    {
+        int new_capacity = (*tokens_capacity) * 2;
+        Token *temp_tokens = realloc(*tokens, new_capacity * sizeof(Token));
+        if (!temp_tokens)
+        {
+            perror("TOKENIZER: realloc failure");
+            return false;
+        }
+        *tokens = temp_tokens;
+        *tokens_capacity = new_capacity;
+    }
+
+    (*tokens)[*token_count] = token;
+    (*token_count)++;
+
+    return true;
 }
 
 void free_tokens(Token *tokens, int count)
 {
     for (int i = 0; i < count; i++)
     {
-        if (tokens[i].type == TOKEN_WORD && tokens[i].value)
-        {
-            free(tokens[i].value);
-        }
+        free(tokens[i].value);
     }
-    
+
     free(tokens);
 }
-
-
