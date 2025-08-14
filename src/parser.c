@@ -10,6 +10,7 @@ ASTNode* parse_sequence(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_pipeline(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_command(Token *tokens, int token_count, int *token_index);
+ASTNode* parse_logical(Token *tokens, int token_count, int *token_index);
 
 ASTNode* parse_token(Token *tokens, int token_count)
 {
@@ -27,7 +28,7 @@ ASTNode* parse_token(Token *tokens, int token_count)
 
     if (token_index < token_count)
     {
-        // TODO: write function free_ast to free the ast.
+        free_ast(ast);
         return NULL;
     }
 
@@ -37,72 +38,124 @@ ASTNode* parse_token(Token *tokens, int token_count)
 
 ASTNode* parse_sequence(Token *tokens, int token_count, int *token_index)
 {
-    ASTNode *node_side = parse_pipeline(tokens, token_count, token_index);
-    if (!node_side)
+    ASTNode *node_left = parse_logical(tokens, token_count, token_index);
+    if (!node_left)
     {
         return NULL;
     }
 
-    if (tokens[*token_index].type != TOKEN_SEMICOLON)
+    while (*token_index < token_count && 
+            tokens[*token_index].type == TOKEN_SEMICOLON)
     {
-        return node_side;
+        // Move past semicolon.
+        (*token_index)++;
+
+        ASTNode *node_right = parse_logical(tokens, token_count, token_index);
+        if (!node_right)
+        {
+            return NULL;
+        }
+
+        ASTNode *node = malloc(sizeof(ASTNode));
+        if (!node)
+        {
+            fprintf(stderr, "parse_sequence: malloc failure\n");
+            return NULL;
+        }
+
+        node->type = NODE_SEQUENCE;
+        node->binary.left = node_left;
+        node->binary.right = node_right;
+
+        node_left = node;
     }
 
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node)
+    return node_left;
+}
+
+
+ASTNode* parse_logical(Token *tokens, int token_count, int *token_index)
+{
+    ASTNode *node_left = parse_pipeline(tokens, token_count, token_index);
+    if (!node_left)
     {
-        fprintf(stderr, "parse_sequence: malloc failure\n");
-        // TODO: free_ast()
         return NULL;
     }
 
-    node->type = NODE_SEQUENCE;
-    node->binary.left = node_side;
+    while (*token_index < token_count &&
+            (tokens[*token_index].type == TOKEN_AND ||
+            tokens[*token_index].type == TOKEN_OR))
+    {
+        ASTNode *node = malloc(sizeof(ASTNode));
+        if (!node)
+        {
+            fprintf(stderr, "parse_logical: malloc failure");
+            return NULL;
+        }
 
-    // Move past semicolon.
-    (*token_index)++;
+        if (tokens[*token_index].type == TOKEN_AND)
+        {
+            node->type = NODE_AND;
+        }
+        else
+        {
+            node->type = NODE_OR;
+        }
 
-    node->binary.right = parse_sequence(tokens, token_count, token_index);
-    
-    return node;
+        (*token_index)++;
+        ASTNode *node_right = parse_pipeline(tokens, token_count, token_index);
+        if (!node_right)
+        {
+            free(node);
+            return NULL;
+        }
+
+        node->binary.left = node_left;
+        node->binary.right = node_right;
+
+        node_left = node;
+    }
+    return node_left;
 }
 
 
 ASTNode* parse_pipeline(Token *tokens, int token_count, int *token_index)
 {
-    ASTNode *node_side = parse_redirect(tokens, token_count, token_index);
-    if (!node_side)
+    ASTNode *node_left = parse_redirect(tokens, token_count, token_index);
+    if (!node_left)
     {
         return NULL;
     }
 
-    if (tokens[*token_index].type != TOKEN_PIPE)
+    while (*token_index < token_count &&
+            tokens[*token_index].type == TOKEN_PIPE)
     {
-        return node_side;
+        (*token_index)++;
+        ASTNode *node_right = parse_redirect(tokens, token_count, token_index);
+        if (!node_right)
+        {
+            return NULL;
+        }
+    
+        ASTNode *node = malloc(sizeof(ASTNode));
+        if (!node)
+        {
+            fprintf(stderr, "parse_pipeline: malloc failure\n");
+            return NULL;
+        }
+
+        node->type = NODE_PIPELINE;
+        node->binary.left = node_left;
+        node->binary.right = node_right;
+
+        node_left = node;
     }
-
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node)
-    {
-        fprintf(stderr, "parse_pipeline: malloc failure\n");
-        // TODO: free_ast()
-        return NULL;
-    }
-
-    node->type = NODE_PIPELINE;
-    node->binary.left = node_side;
-
-    (*token_index)++;
-
-    node->binary.right = parse_pipeline(tokens, token_count, token_index);
-
-    return node;
+    return node_left;
 }
 
 
 ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
 {
-    // TODO
     ASTNode *node_command = parse_command(tokens, token_count, token_index);
     if (!node_command)
     {
@@ -120,7 +173,6 @@ ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
         if (!node)
         {
             fprintf(stderr, "parse_redirect: malloc failure\n");
-            // TODO: free_ast()
             return NULL;
         }
 
@@ -132,9 +184,11 @@ ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
             case TOKEN_INPUT_REDIRECT:
                 node->redirect.redirect_type = REDIRECT_INPUT;
                 break;
+
             case TOKEN_OUTPUT_REDIRECT:
                 node->redirect.redirect_type = REDIRECT_OUTPUT;
                 break;
+
             case TOKEN_APPEND_REDIRECT:
                 node->redirect.redirect_type = REDIRECT_APPEND;
                 break;
@@ -162,7 +216,52 @@ ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
 
 ASTNode* parse_command(Token *tokens, int token_count, int *token_index)
 {
-    if (*token_index >= token_count || tokens[*token_index].type != TOKEN_WORD)
+    if (*token_index >= token_count)
+    {
+        fprintf(stderr, "Token index surpasses number of tokens\n");
+        return NULL;
+    }
+
+    // Subshell process below.
+    if (tokens[*token_index].type == TOKEN_OPEN_PAREN)
+    {
+        // Move past open parenthesis.
+        (*token_index)++;
+
+        ASTNode *subshell = parse_sequence(tokens, token_count, token_index);
+        if (!subshell)
+        {
+            fprintf(stderr, "Invalid subshell usage\n");
+            return NULL;
+        }
+
+        if (*token_index >= token_count ||
+            tokens[*token_index].type != TOKEN_CLOSE_PAREN)
+        {
+            fprintf(stderr, "Invalid parenthesis usage\n");
+            return NULL;
+        }
+
+        // Move past close parenthesis.
+        (*token_index)++;
+
+        ASTNode *node = malloc(sizeof(ASTNode));
+        if (!node)
+        {
+            fprintf(stderr, "parse_command: node malloc failure");
+            return NULL;
+        }
+
+        node->type = NODE_SUBSHELL;
+        node->binary.left = subshell;
+        node->binary.right = NULL;
+
+        return node;
+    }
+    // End of subshell process.
+
+    // Command process below.
+    if (tokens[*token_index].type != TOKEN_WORD)
     {
         fprintf(stderr, "Invalid command usage\n");
         return NULL;
@@ -172,7 +271,6 @@ ASTNode* parse_command(Token *tokens, int token_count, int *token_index)
     if (!node)
     {
         fprintf(stderr, "parse_command: node malloc failure");
-        // TODO: free_ast()
         return NULL;
     }
 
@@ -189,8 +287,6 @@ ASTNode* parse_command(Token *tokens, int token_count, int *token_index)
     if (!node->command.argv)
     {
         fprintf(stderr, "parse_command: command.argv malloc failure");
-        free(node);
-        // TODO: free_ast()
         return NULL;
     }
 
@@ -207,7 +303,42 @@ ASTNode* parse_command(Token *tokens, int token_count, int *token_index)
 }
 
 
-void free_ast()
+void free_ast(ASTNode *node)
 {
-    // TODO: Implement a function to free all allocated memory.
+    if (!node)
+    {
+        return;
+    }
+
+    switch (node->type)
+    {
+        case NODE_COMMAND:
+            for (int i = 0; node->command.argv[i]; i++)
+            {
+                free(node->command.argv[i]);
+            }
+            free(node->command.argv);
+            break;
+
+        case NODE_REDIRECT:
+            free_ast(node->redirect.child);
+            free(node->redirect.filename);
+            break;
+
+        case NODE_PIPELINE:
+        case NODE_SEQUENCE:
+        case NODE_AND:
+        case NODE_OR:
+            free_ast(node->binary.left);
+            free_ast(node->binary.right);
+            break;
+
+        case NODE_SUBSHELL:
+            free_ast(node->binary.left);
+            break;
+
+        default:
+    }
+    
+    free(node);
 }
