@@ -6,7 +6,10 @@ typedef enum
     NODE_COMMAND,
     NODE_SEQUENCE,
     NODE_PIPELINE,
-    NODE_REDIRECT
+    NODE_REDIRECT,
+    NODE_AND,
+    NODE_OR,
+    NODE_SUBSHELL
 } NodeType;
 
 typedef enum
