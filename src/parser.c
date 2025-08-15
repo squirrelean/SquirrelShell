@@ -11,11 +11,13 @@ ASTNode* parse_pipeline(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_command(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_logical(Token *tokens, int token_count, int *token_index);
+void free_ast(ASTNode *node);
 
 ASTNode* parse_token(Token *tokens, int token_count)
 {
     if (token_count == 0)
     {
+        fprintf(stderr, "No tokens to parse.\n");
         return NULL;
     }
 
@@ -23,11 +25,14 @@ ASTNode* parse_token(Token *tokens, int token_count)
     ASTNode *ast = parse_sequence(tokens, token_count, &token_index);
     if (!ast)
     {
+        printf("failed to parse sequence.\n");
         return NULL;
     }
 
-    if (token_index < token_count)
+    if (token_index < token_count && 
+        tokens[token_index].type != TOKEN_EOF)
     {
+        printf("Unexpected tokens after parsing index: %d count: %d\n", token_index, token_count);
         free_ast(ast);
         return NULL;
     }
@@ -41,6 +46,7 @@ ASTNode* parse_sequence(Token *tokens, int token_count, int *token_index)
     ASTNode *node_left = parse_logical(tokens, token_count, token_index);
     if (!node_left)
     {
+        fprintf(stderr, "parse_sequence: parse_logical failure\n");
         return NULL;
     }
 
@@ -79,6 +85,7 @@ ASTNode* parse_logical(Token *tokens, int token_count, int *token_index)
     ASTNode *node_left = parse_pipeline(tokens, token_count, token_index);
     if (!node_left)
     {
+        fprintf(stderr, "parse_logical: parse_pipeline failure\n");
         return NULL;
     }
 
@@ -124,6 +131,7 @@ ASTNode* parse_pipeline(Token *tokens, int token_count, int *token_index)
     ASTNode *node_left = parse_redirect(tokens, token_count, token_index);
     if (!node_left)
     {
+        fprintf(stderr, "parse_pipeline: parse_redirect failure\n");
         return NULL;
     }
 
@@ -159,6 +167,7 @@ ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
     ASTNode *node_command = parse_command(tokens, token_count, token_index);
     if (!node_command)
     {
+        fprintf(stderr, "parse_redirect: parse_command failure\n");
         return NULL;
     }
 
@@ -192,6 +201,8 @@ ASTNode* parse_redirect(Token *tokens, int token_count, int *token_index)
             case TOKEN_APPEND_REDIRECT:
                 node->redirect.redirect_type = REDIRECT_APPEND;
                 break;
+
+            default:
         }
 
         // Move past redirection token,
