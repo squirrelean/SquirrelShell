@@ -1,24 +1,29 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "command_syntax_tree.h"
 
-void print_tree(ASTNode *node, int dist, bool node_end);
+void print_tree(ASTNode *node, bool node_end, char *outline);
 void print_tree_design(int dist, bool node_end);
+char* create_new_outline(char *outline, bool node_end);
 
 #define BRANCH_END "└── "
 #define BRANCH_REG "├── "
-#define SPACE      "|   "
+#define SPACE      "    "
+#define SEPARATOR  "|   "
+#define INDENT_SIZE 5
 
 void print_ast(ASTNode *ast)
 {
-    int dist = 0;
-    bool node_end = NULL;
-    print_tree(ast, dist, node_end);
+    bool node_end = true;
+    char *outline = "";
+    print_tree(ast, node_end, outline);
 }
 
 
-void print_tree(ASTNode *node, int dist, bool node_end)
+void print_tree(ASTNode *node, bool node_end, char *outline)
 {
     if (!node)
     {
@@ -26,81 +31,106 @@ void print_tree(ASTNode *node, int dist, bool node_end)
         return;
     }
 
-    print_tree_design(dist, node_end);
-
-    switch (node->type)
-    {
-        case NODE_COMMAND:
-            printf("COMMAND:");
-            for (int i = 0; node->command.argv[i]; i++)
-            {
-                printf(" %s", node->command.argv[i]);
-            }
-            printf("\n");
-            break;
-
-        case NODE_REDIRECT:
-            switch (node->redirect.redirect_type)
-            {
-                case REDIRECT_INPUT:
-                    printf("REDIRECT INPUT\n");
-                    break;
-                case REDIRECT_OUTPUT:
-                    printf("REDIRECT OUTPUT\n");
-                    break;
-                case REDIRECT_APPEND:
-                    printf("REDIRECT APPEND\n");
-                    break;
-            }
-            printf("%s", node->redirect.filename);
-            print_tree(node->redirect.child, dist + 1, false);
-            break;
-
-        case NODE_PIPELINE:
-            printf("PIPE\n");
-            print_tree(node->binary.left, dist + 1, false);
-            print_tree(node->binary.right, dist + 1, true);
-            break;
-        
-        case NODE_AND:
-            printf("AND\n");
-            print_tree(node->binary.left, dist + 1, false);
-            print_tree(node->binary.right, dist + 1, true);
-            break;
-        
-        case NODE_OR:
-            printf("OR\n");
-            print_tree(node->binary.left, dist + 1, false);
-            print_tree(node->binary.right, dist + 1, true);
-            break;
-
-        case NODE_SEQUENCE:
-            printf("SEQUENCE\n");
-            print_tree(node->binary.left, dist + 1, false);
-            print_tree(node->binary.right, dist + 1, true);
-            break;
-
-        case NODE_SUBSHELL:
-            printf("SUBSHELL\n");
-            print_tree(node->binary.left, dist + 1, true);
-            break;
-    }
-}
-
-
-void print_tree_design(int dist, bool node_end)
-{
-    for (int i = 0; i < dist; i++)
-    {
-        printf(SPACE);
-    }
-
+    printf("%s", outline);
     if (node_end)
     {
-        printf(BRANCH_END);
+        printf("%s", BRANCH_END);
     }
     else
     {
-        printf(BRANCH_REG);
+        printf("%s", BRANCH_REG);
     }
+
+    char *new_outline = create_new_outline(outline, node_end);
+    if (!new_outline)
+    {
+        fprintf(stderr, "print_tree: malloc failure");
+        return;
+    }
+
+    if (node->type == NODE_COMMAND)
+    {
+        printf("COMMAND:");
+        for (int i = 0; node->command.argv[i]; i++)
+        {
+            printf(" %s", node->command.argv[i]);
+        }
+        printf("\n");
+    }
+
+    else if (node->type == NODE_REDIRECT)
+    {
+        switch (node->redirect.redirect_type)
+        {
+            case REDIRECT_INPUT:
+                    printf("REDIRECT INPUT <");
+                    break;
+                case REDIRECT_OUTPUT:
+                    printf("REDIRECT OUTPUT >");
+                    break;
+                case REDIRECT_APPEND:
+                    printf("REDIRECT APPEND >>");
+                    break;
+        }
+        
+        printf(" %s\n", node->redirect.filename);
+        print_tree(node->redirect.child, true, new_outline);
+    }
+
+    else if (node->type == NODE_PIPELINE ||
+             node->type == NODE_AND ||
+             node->type == NODE_OR ||
+             node->type == NODE_SEQUENCE)
+    {
+        switch (node->type)
+        {
+            case NODE_PIPELINE:
+                printf("PIPE\n");
+                break;
+            case NODE_AND:
+                printf("AND\n");
+                break;
+            case NODE_OR:
+                printf("OR\n");
+                break;
+            case NODE_SEQUENCE:
+                printf("SEQUENCE\n");
+                break;
+            default:
+        }
+        print_tree(node->binary.left, false, new_outline);
+        print_tree(node->binary.right, true, new_outline);
+    }
+
+    else if (node->type == NODE_SUBSHELL)
+    {
+        printf("SUBSHELL\n");
+        print_tree(node->binary.left, true, new_outline);
+    }
+
+    free(new_outline);
+}
+
+
+char* create_new_outline(char *outline, bool node_end)
+{
+    size_t new_outline_size = strlen(outline) + INDENT_SIZE;
+    char *new_outline = malloc(new_outline_size);
+    if (!new_outline)
+    {
+        return NULL;
+    }
+
+    strcpy(new_outline, outline);
+
+    if (node_end)
+    {
+        strcat(new_outline, SPACE);
+    }
+    else
+    {
+        strcat(new_outline, SEPARATOR);
+    }
+    
+    return new_outline;
 }
