@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #include "command_syntax_tree.h"
 #include "builtins.h"
@@ -17,6 +18,7 @@
 int execute_command(ASTNode *node, int last_command_status);
 int execute_sequence(ASTNode *node);
 int execute_logical(ASTNode *node);
+int execute_redirect(ASTNode *node);
 
 // Global variables
 static int last_command_status = 0;
@@ -42,6 +44,7 @@ int execute_ast(ASTNode *node)
             break;
 
         case NODE_REDIRECT:
+            last_command_status = execute_redirect(node);
             break;
         
         case NODE_AND:
@@ -53,7 +56,7 @@ int execute_ast(ASTNode *node)
             break;
 
         default:
-            fprintf(stderr, "command not found\n");
+            fprintf(stderr, "SquirrelShell: command not found\n");
             last_command_status = 1;
     }
 
@@ -75,7 +78,7 @@ int execute_logical(ASTNode *node)
 
     if (node->type == NODE_AND)
     {
-        if (left_command_status == 0)
+        if (!left_command_status)
         {
             return execute_ast(node->binary.right);
         }
@@ -83,7 +86,7 @@ int execute_logical(ASTNode *node)
     
     else if (node->type == NODE_OR)
     {
-        if (left_command_status != 0)
+        if (left_command_status)
         {
             return execute_ast(node->binary.right);
         }
@@ -103,7 +106,66 @@ int execute_pipeline(ASTNode *node)
 int execute_redirect(ASTNode *node)
 {
     // TODO
-    return 0;
+    int file_descriptor;
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        perror("SquirrelShell: execute_redirect: fork error");
+        return 1;
+    }
+
+    if (!pid)
+    {
+        if (node->redirect.redirect_type == REDIRECT_INPUT)
+        {
+            file_descriptor = open(node->redirect.filename, O_RDONLY);
+            if (file_descriptor == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_input: open error");
+                return 1;
+            }
+
+            if (dup2(file_descriptor, STDIN_FILENO) == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_input: dup2 error");
+                return 1;
+            }
+            if (close(file_descriptor) == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_input: close error");
+                return 1;
+            }
+        }
+        
+        else if (node->redirect.redirect_type == REDIRECT_OUTPUT)
+        {
+            file_descriptor = open(node->redirect.filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (file_descriptor == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_output: open error");
+                return 1;
+            }
+            if (dup2(file_descriptor, STDOUT_FILENO) == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_output: dup2 error");
+                return 1;
+            }
+            if (close(file_descriptor) == -1)
+            {
+                perror("SquirrelShell: execute_redirect: redirect_output: close error");
+                return 1;
+            }
+        }
+
+        exit(execute_ast(node->redirect.child));
+    }
+
+    else
+    {
+        int status;
+        waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
 }
 
 
@@ -124,15 +186,15 @@ int execute_command(ASTNode *node, int last_command_status)
     else
     {
         pid_t pid = fork();
-        if (pid < 0)
+        if (pid == -1)
         {
-            perror("execute_command: fork error");
+            perror("SquirrelShell: execute_command: fork error");
             return 1;
         }
-        else if (pid == 0)
+        else if (!pid)
         {
             execvp(node->command.argv[0], node->command.argv);
-            perror("execute_command: execvp error");
+            perror("SquirrelShell: execute_command: execvp error");
             exit(1);
         }
         else
