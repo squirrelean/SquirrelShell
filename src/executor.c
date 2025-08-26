@@ -105,8 +105,6 @@ int execute_pipeline(ASTNode *node)
 
 int execute_redirect(ASTNode *node)
 {
-    // TODO
-    int file_descriptor;
     pid_t pid = fork();
     if (pid == -1)
     {
@@ -116,45 +114,44 @@ int execute_redirect(ASTNode *node)
 
     if (!pid)
     {
-        if (node->redirect.redirect_type == REDIRECT_INPUT)
-        {
-            file_descriptor = open(node->redirect.filename, O_RDONLY);
-            if (file_descriptor == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_input: open error");
-                return 1;
-            }
+        int file_descriptor;
+        int file_descriptor_2;
+        int open_flag = 0;
+        mode_t default_perms = 0644;
 
-            if (dup2(file_descriptor, STDIN_FILENO) == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_input: dup2 error");
-                return 1;
-            }
-            if (close(file_descriptor) == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_input: close error");
-                return 1;
-            }
-        }
-        
-        else if (node->redirect.redirect_type == REDIRECT_OUTPUT)
+        switch (node->redirect.redirect_type)
         {
-            file_descriptor = open(node->redirect.filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (file_descriptor == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_output: open error");
-                return 1;
-            }
-            if (dup2(file_descriptor, STDOUT_FILENO) == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_output: dup2 error");
-                return 1;
-            }
-            if (close(file_descriptor) == -1)
-            {
-                perror("SquirrelShell: execute_redirect: redirect_output: close error");
-                return 1;
-            }
+            case REDIRECT_INPUT:
+                open_flag = O_RDONLY;
+                file_descriptor_2 = STDIN_FILENO;
+                break;
+            case REDIRECT_OUTPUT:
+                open_flag = O_WRONLY | O_CREAT | O_TRUNC;
+                file_descriptor_2 = STDOUT_FILENO;
+                break;
+            case REDIRECT_APPEND:
+                open_flag = O_APPEND | O_WRONLY | O_CREAT;
+                file_descriptor_2 = STDOUT_FILENO;
+                break;
+        }
+
+        file_descriptor = open(node->redirect.filename, open_flag, default_perms);
+        if (file_descriptor == -1)
+        {
+            perror("SquirrelShell: execute_redirect: open error");
+            exit(1);
+        }
+
+        if (dup2(file_descriptor, file_descriptor_2) == -1)
+        {
+            perror("SquirrelShell: execute_redirect: dup2 error");
+            exit(1);
+        }
+
+        if (close(file_descriptor) == -1)
+        {
+            perror("SquirrelShell: execute_redirect: close error");
+            exit(1);
         }
 
         exit(execute_ast(node->redirect.child));
