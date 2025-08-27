@@ -19,6 +19,7 @@ int execute_sequence(ASTNode *node);
 int execute_logical(ASTNode *node);
 int execute_pipeline(ASTNode *node);
 int execute_redirect(ASTNode *node);
+int execute_subshell(ASTNode *node);
 int execute_command(ASTNode *node, int last_command_status);
 
 // Global variables
@@ -55,6 +56,7 @@ int execute_ast(ASTNode *node)
             break;
         
         case NODE_SUBSHELL:
+            last_command_status = execute_subshell(node);
             break;
 
         default:
@@ -225,6 +227,33 @@ int execute_redirect(ASTNode *node)
     {
         int status;
         waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
+}
+
+
+int execute_subshell(ASTNode *node)
+{
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        perror("SquirrelShell: execute_subshell: fork error");
+        return 1;
+    }
+
+    if (!pid)
+    {
+        exit(execute_ast(node->binary.left));
+    }
+    else
+    {
+        int status;
+        if (waitpid(pid, &status, 0) == -1)
+        {
+            perror("SquirrelShell: execute_subshell: waitpid error");
+            return 1;
+        }
+
         return WEXITSTATUS(status);
     }
 }
