@@ -15,10 +15,11 @@
 #define EXIT_SHELL "exit"
 
 // Prototypes.
-int execute_command(ASTNode *node, int last_command_status);
 int execute_sequence(ASTNode *node);
 int execute_logical(ASTNode *node);
+int execute_pipeline(ASTNode *node);
 int execute_redirect(ASTNode *node);
+int execute_command(ASTNode *node, int last_command_status);
 
 // Global variables
 static int last_command_status = 0;
@@ -41,6 +42,7 @@ int execute_ast(ASTNode *node)
             break;
 
         case NODE_PIPELINE:
+            last_command_status = execute_pipeline(node);
             break;
 
         case NODE_REDIRECT:
@@ -98,8 +100,70 @@ int execute_logical(ASTNode *node)
 
 int execute_pipeline(ASTNode *node)
 {
-    // TODO
-    return 0;
+    int pipe_fds[2];
+    if (pipe(pipe_fds) == -1)
+    {
+        perror("SquirrelShell: execute_pipeline: pipe error");
+        return 1;
+    }
+
+    // Child process for left side of pipe.
+    pid_t left_arg_pid = fork();
+    if (left_arg_pid == -1)
+    {
+        close(pipe_fds[0]);
+        close(pipe_fds[1]);
+        perror("SquirrelShell: execute_pipeline: left fork error");
+        return 1;
+    }
+
+    if (!left_arg_pid)
+    {
+        if (dup2(pipe_fds[1], STDOUT_FILENO) == -1)
+        {
+            perror("SquirrelShell: execute_pipeline: dup2 error in left child");
+            exit(1);
+        }
+
+        close(pipe_fds[0]);
+        close(pipe_fds[1]);
+
+        exit(execute_ast(node->binary.left));
+    }
+
+    // Child process for right side of pipe.
+    pid_t right_arg_pid = fork();
+    if (right_arg_pid == -1)
+    {
+        close(pipe_fds[0]);
+        close(pipe_fds[1]);
+        perror("SquirrelShell: execute_pipeline: right fork error");
+        return 1;
+    }
+
+    if (!right_arg_pid)
+    {
+        if (dup2(pipe_fds[0], STDIN_FILENO) == -1)
+        {
+            perror("SquirrelShell: execute_pipeline: dup2 error in right child");
+            exit(1);
+        }
+
+        close(pipe_fds[0]);
+        close(pipe_fds[1]);
+
+        exit(execute_ast(node->binary.right));
+    }
+
+    // Parent process. Wait for child processes to finish.
+    close(pipe_fds[0]);
+    close(pipe_fds[1]);
+
+    int status;
+    waitpid(left_arg_pid, NULL, 0);
+    waitpid(right_arg_pid, &status, 0);
+
+    return WEXITSTATUS(status);
 }
 
 
