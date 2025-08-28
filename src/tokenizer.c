@@ -16,7 +16,7 @@ Token* tokenize(char *line, int *token_count)
     Token *tokens = malloc(tokens_capacity * sizeof(Token));
     if (!tokens)
     {
-        perror("malloc failure tokenizer");
+        perror("SquirrelShell: tokenize: malloc error");
         return NULL;
     }
 
@@ -120,7 +120,6 @@ Token* tokenize(char *line, int *token_count)
                 {
                     token.type = TOKEN_WORD;
                     token.value = word;
-                    // Must free word.
                 }
                 else
                 {
@@ -131,25 +130,8 @@ Token* tokenize(char *line, int *token_count)
             }
             else
             {
-                fprintf(stderr, "Improper quotation\n");
-
-                token.type = TOKEN_INVALID;
-                token.value = NULL;
-                if (!append_token(&tokens, token, token_count, &tokens_capacity))
-                {
-                    free_tokens(tokens, *token_count);
-                    return NULL;
-                }
-
-                Token eof_token;
-                eof_token.type = TOKEN_EOF;
-                eof_token.value = NULL;
-                if (!append_token(&tokens, eof_token, token_count, &tokens_capacity))
-                {
-                    free_tokens(tokens, *token_count);
-                    return NULL;
-                }
-                return tokens;
+                free_tokens(tokens, *token_count);
+                return NULL;
             }
         }
         else
@@ -167,7 +149,6 @@ Token* tokenize(char *line, int *token_count)
             {
                 token.type = TOKEN_WORD;
                 token.value = word;
-                // Must free word.
             } 
             else
             {
@@ -182,9 +163,16 @@ Token* tokenize(char *line, int *token_count)
             free_tokens(tokens, *token_count);
             return NULL;
         }
+
+        // Ensure strdup did not fail.
+        if (!token.value)
+        {
+            free_tokens(tokens, *token_count);
+            return NULL;
+        }
     }
 
-    // Append EOF indicator token.
+    // Append EOF indicator token to mark end of stream.
     Token eof_token;
     eof_token.type = TOKEN_EOF;
     eof_token.value = NULL;
@@ -207,7 +195,7 @@ bool append_token(Token **tokens, Token token, int *token_count, int *tokens_cap
         Token *temp_tokens = realloc(*tokens, new_capacity * sizeof(Token));
         if (!temp_tokens)
         {
-            perror("TOKENIZER: realloc failure");
+            perror("SquirrelShell: append_token: realloc error");
             return false;
         }
         *tokens = temp_tokens;
@@ -219,6 +207,7 @@ bool append_token(Token **tokens, Token token, int *token_count, int *tokens_cap
 
     return true;
 }
+
 
 void free_tokens(Token *tokens, int count)
 {
