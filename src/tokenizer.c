@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "tokenizer.h"
 
+#define DELIMITERS " ;|<>()"
+
 // Prototypes
 bool append_token(Token **tokens, Token token, int *token_count, int *tokens_capacity);
 void free_tokens(Token *tokens, int count);
@@ -26,6 +28,7 @@ Token* tokenize(char *line, int *token_count)
     while (line[i] != '\0')
     {
         char ch = line[i];
+        char next_ch = line[i + 1];
 
         if (isspace(ch))
         {
@@ -35,14 +38,14 @@ Token* tokenize(char *line, int *token_count)
 
         Token token;
 
-        if (ch != '\0' && ch == '&' && line[i + 1] == '&')
+        if (next_ch != '\0'&& ch == '&' && line[i + 1] == '&')
         {
             token.type = TOKEN_AND;
             token.value = strdup("&&");
             i += 2;
         }
 
-        else if (ch != '\0' && ch == '|' && line[i + 1] == '|')
+        else if (next_ch != '\0' && ch == '|' && line[i + 1] == '|')
         {
             token.type = TOKEN_OR;
             token.value = strdup("||");
@@ -79,7 +82,6 @@ Token* tokenize(char *line, int *token_count)
 
         else if (ch == '<' || ch == '>')
         {
-            char next_ch = line[i + 1];
 
             if (ch == '>' && next_ch == '>')
             {
@@ -100,72 +102,51 @@ Token* tokenize(char *line, int *token_count)
                 i++;
             }
         }
-        // Handle quoted words.
-        else if (ch == '"')
-        {
-            i++;
-            int start = i;
-            int quote_len = 0;
 
-            while (line[i] != '\0' && line[i] != '"')
-            {
-                quote_len++;
-                i++;
-            }
-
-            if (line[i] == '"')
-            {
-                char *word = strndup(&line[start], quote_len);
-                if (word != NULL)
-                {
-                    token.type = TOKEN_WORD;
-                    token.value = word;
-                }
-                else
-                {
-                    free_tokens(tokens, *token_count);
-                    return NULL;
-                }
-                i++;
-            }
-            else
-            {
-                free_tokens(tokens, *token_count);
-                return NULL;
-            }
-        }
+        // Handle quoted and unquoted words.
         else
         {
-            // Handle regular word.
-            int word_len = 0;
-            int start = i;
-            while (line[i] != '\0' && !isspace(line[i]) && !strchr("<>()|;", line[i]))
+            char *word_buffer = malloc(strlen(line) + 1);
+            if (!word_buffer)
             {
-                word_len++;
-                i++;
-            }
-            char *word = strndup(&line[start], word_len);
-            if (word != NULL)
-            {
-                token.type = TOKEN_WORD;
-                token.value = word;
-            } 
-            else
-            {
+                perror("SquirrelShell: tokenize: malloc error");
                 free_tokens(tokens, *token_count);
                 return NULL;
             }
-        }
+            int word_buffer_size = 0;
+            bool is_quoted_word = false;
+            while (line[i] != '\0')
+            {
+                if (line[i] == '"')
+                {
+                    is_quoted_word = !is_quoted_word;
+                    i++;
+                    continue;
+                }
+                if (strchr(DELIMITERS, line[i]) && !is_quoted_word)
+                {
+                    break;
+                }
+                word_buffer[word_buffer_size++] = line[i];
+                i++;
+            }
 
-        // Allocate space for additional tokens.
-        if (!append_token(&tokens, token, token_count, &tokens_capacity))
-        {
-            free_tokens(tokens, *token_count);
-            return NULL;
+            word_buffer[word_buffer_size] = '\0';
+            token.type = TOKEN_WORD;
+            token.value = strdup(word_buffer);
+            free(word_buffer);
         }
 
         // Ensure strdup did not fail.
         if (!token.value)
+        {
+            perror("SquirrelShell: tokenize: strdup error");
+            free_tokens(tokens, *token_count);
+            return NULL;
+        }
+
+        // Allocate space for additional tokens.
+        if (!append_token(&tokens, token, token_count, &tokens_capacity))
         {
             free_tokens(tokens, *token_count);
             return NULL;
