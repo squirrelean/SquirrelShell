@@ -13,8 +13,7 @@ typedef enum
     TOKEN_APPEND_REDIRECT,
     TOKEN_OPEN_PAREN,
     TOKEN_CLOSE_PAREN,
-    TOKEN_EOF,
-    TOKEN_INVALID
+    TOKEN_EOF
 } TokenType;
 
 typedef struct
