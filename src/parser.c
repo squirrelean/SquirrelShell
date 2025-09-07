@@ -1,9 +1,13 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "tokenizer.h"
 #include "command_syntax_tree.h"
+#include "builtins.h"
+
+#define PRINT_AST "printast"
 
 // Prototypes.
 ASTNode* parse_sequence(Token *tokens, int token_count, int *token_index);
@@ -13,6 +17,7 @@ ASTNode* parse_command(Token *tokens, int token_count, int *token_index);
 ASTNode* parse_logical(Token *tokens, int token_count, int *token_index);
 void free_ast(ASTNode *node);
 
+static bool is_printast_command;
 ASTNode* parse_token(Token *tokens, int token_count)
 {
     if (token_count == 0)
@@ -20,12 +25,21 @@ ASTNode* parse_token(Token *tokens, int token_count)
         fprintf(stderr, "No tokens to parse.\n");
         return NULL;
     }
-
+    
+    is_printast_command = false;
     int token_index = 0;
     ASTNode *ast = parse_sequence(tokens, token_count, &token_index);
     if (!ast)
     {
         printf("failed to parse sequence.\n");
+        return NULL;
+    }
+
+    if (is_printast_command)
+    {
+        print_ast(ast);
+        free_ast(ast);
+        is_printast_command = false;
         return NULL;
     }
 
@@ -231,6 +245,13 @@ ASTNode* parse_command(Token *tokens, int token_count, int *token_index)
     {
         fprintf(stderr, "Token index surpasses number of tokens\n");
         return NULL;
+    }
+
+    // Handle the printast built in command.
+    if (!strcmp(tokens[*token_index].value, PRINT_AST))
+    {
+        is_printast_command = true;
+        (*token_index)++;
     }
 
     // Subshell process below.
