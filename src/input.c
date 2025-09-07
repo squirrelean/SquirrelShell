@@ -25,7 +25,7 @@ char* read_line(void)
         print_prompt(full_command_size);
 
         chars_read = getline(&line, &buffer_size, stdin);
-        if (chars_read == -1)
+        if (chars_read == -1 || line[0] == '\n')
         {
             free(line);
             free(full_command);
