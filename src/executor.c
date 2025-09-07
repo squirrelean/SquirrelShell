@@ -13,8 +13,10 @@
 // Built in command names
 #define CHANGE_DIRECTORY "cd"
 #define EXIT_SHELL "exit"
+#define PRINT_AST "printast"
 
 // Prototypes.
+int execute_ast(ASTNode *node);
 int execute_sequence(ASTNode *node);
 int execute_logical(ASTNode *node);
 int execute_pipeline(ASTNode *node);
@@ -22,9 +24,8 @@ int execute_redirect(ASTNode *node);
 int execute_subshell(ASTNode *node);
 int execute_command(ASTNode *node, int last_command_status);
 
-// Global variables
-static int last_command_status = 0;
 
+static int last_command_status = 0;
 int execute_ast(ASTNode *node)
 {
     if (!node)
@@ -60,7 +61,7 @@ int execute_ast(ASTNode *node)
             break;
 
         default:
-            fprintf(stderr, "SquirrelShell: command not found\n");
+            fprintf(stderr, "SquirrelShell: invalid node type\n");
             last_command_status = 1;
     }
 
@@ -284,7 +285,7 @@ int execute_command(ASTNode *node, int last_command_status)
         else if (!pid)
         {
             execvp(node->command.argv[0], node->command.argv);
-            perror("SquirrelShell: execute_command: execvp error");
+            perror("SquirrelShell: command");
             exit(1);
         }
         else
