@@ -1,25 +1,18 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -Iinclude -Ibuiltins
+CFLAGS = -Wall -Wextra -g -Iinclude -Ibuiltins -Idisplay
 
-SRC_DIR = src
+SRC_DIRS = src builtins display
 BUILD_DIR = build
-INCLUDE_DIR = include
-BUILTINS_DIR = builtins
-
 TARGET = squirrelshell
-SRC = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(BUILTINS_DIR)/*.c)
-OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(SRC)))
-DEPS = $(wildcard $(INCLUDE_DIR)/*.h) $(wildcard $(BUILTINS_DIR)/*.h)
+
+SRC = $(shell find $(SRC_DIRS) -name '*.c')
+OBJ = $(patsubst %,$(BUILD_DIR)/%,$(SRC:.c=.o))
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(DEPS)
-	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/%.o: $(BUILTINS_DIR)/%.c $(DEPS)
-	@mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean
