@@ -9,7 +9,7 @@
 void print_prompt(size_t full_command_size);
 bool ensure_matching_quotes(char *line, ssize_t chars_read, int *quote_count);
 
-char* read_line(void)
+char* read_line()
 {
     size_t buffer_size = 0;
     char *line = NULL;
@@ -92,7 +92,7 @@ void print_prompt(size_t full_command_size)
 {
     if (!full_command_size)
     {
-        printf("SquirrelShell 🐿️:: ");
+        printf("SquirrelShell@user: ");
     }
     else
     {
