@@ -9,7 +9,7 @@
 void print_prompt(size_t full_command_size);
 bool ensure_matching_quotes(char *line, ssize_t chars_read, int *quote_count);
 
-char* read_line()
+char* read_line(void)
 {
     size_t buffer_size = 0;
     char *line = NULL;
@@ -22,8 +22,6 @@ char* read_line()
 
     while(true)
     {
-        print_prompt(full_command_size);
-
         chars_read = getline(&line, &buffer_size, stdin);
         if (chars_read == -1 || line[0] == '\n')
         {
@@ -46,11 +44,13 @@ char* read_line()
             line[chars_read - 1] = '\0';
             chars_read--;
             multi_line = true;
+            printf(">> ");
         }
 
         if (ensure_matching_quotes(line, chars_read, &quote_count))
         {
             multi_line = true;
+            printf(">> ");
         }
 
         // Allocate additional space for new input.
@@ -85,19 +85,6 @@ char* read_line()
 
     full_command[full_command_size] = '\0';
     return full_command;
-}
-
-
-void print_prompt(size_t full_command_size)
-{
-    if (!full_command_size)
-    {
-        printf("SquirrelShell@user: ");
-    }
-    else
-    {
-        printf(">");
-    }
 }
 
 
