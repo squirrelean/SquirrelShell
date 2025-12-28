@@ -23,16 +23,13 @@ const char* get_user_name();
 
 int main()
 {
+    const char *welcome_message = "Welcome to SquirrelShell";
+    print_welcome_message(welcome_message);
     const char *username = get_user_name();
-    const char *welcome_message = "Hello, %s. Welcome to SquirrelShell!";
-    int message_len = strlen(username) + strlen(username);
-    char full_welcome_message[sizeof(char) * message_len];
-    sprintf(full_welcome_message, welcome_message, username);
-    print_welcome_message(full_welcome_message);
 
     do 
     {
-        char *line_read = read_line();
+        char *line_read = read_line(username);
         if (!line_read)
         {
             continue;
