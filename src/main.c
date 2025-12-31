@@ -29,7 +29,7 @@ int main()
 
     do 
     {
-        printf("SquirrelShell@user: ");
+        printf("SquirrelShell@%s: ", username);
 
         char *line_read = read_line();
         if (!line_read)
@@ -59,7 +59,6 @@ int main()
 
         execute_ast(ast_root_node);
         
-        // Free all allocated space.
         free(line_read);
         free_tokens(tokens, token_count);
         free_ast(ast_root_node);
