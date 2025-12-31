@@ -29,7 +29,9 @@ int main()
 
     do 
     {
-        char *line_read = read_line(username);
+        printf("SquirrelShell@user: ");
+
+        char *line_read = read_line();
         if (!line_read)
         {
             continue;

@@ -44,13 +44,11 @@ char* read_line(void)
             line[chars_read - 1] = '\0';
             chars_read--;
             multi_line = true;
-            printf(">> ");
         }
 
         if (ensure_matching_quotes(line, chars_read, &quote_count))
         {
             multi_line = true;
-            printf(">> ");
         }
 
         // Allocate additional space for new input.
@@ -73,6 +71,7 @@ char* read_line(void)
         {
             full_command[full_command_size] = ' ';
             full_command_size++;
+            printf(">> ");
         }
         else
         {
