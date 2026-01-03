@@ -9,12 +9,12 @@
 
 #define DELIMITERS " ;|<>()"
 
-bool append_token(Token **tokens, Token token, int *token_count,
-                  int *tokens_capacity);
+bool append_token(Token **tokens, Token token, int *token_count, int *tokens_capacity);
 void free_tokens(Token *tokens, int count);
-char *parse_word(const char *line, int *current_index);
+char *separate_word(const char *line, int *current_index);
 
-Token *tokenize(char *line, int *token_count) {
+Token *tokenize(char *line, int *token_count)
+{
     int tokens_capacity = 5;
     Token *tokens = malloc(tokens_capacity * sizeof(Token));
     if (!tokens) {
@@ -89,7 +89,7 @@ Token *tokenize(char *line, int *token_count) {
 
         default:
             token.type = TOKEN_WORD;
-            token.value = parse_word(line, &i);
+            token.value = separate_word(line, &i);
             if (!token.value) {
                 free_tokens(tokens, *token_count);
                 return NULL;
@@ -104,7 +104,6 @@ Token *tokenize(char *line, int *token_count) {
         }
     }
 
-    // Append EOF indicator token to mark end of token stream.
     Token eof_token;
     eof_token.type = TOKEN_EOF;
     eof_token.value = NULL;
@@ -116,8 +115,8 @@ Token *tokenize(char *line, int *token_count) {
     return tokens;
 }
 
-bool append_token(Token **tokens, Token token, int *token_count,
-                  int *tokens_capacity) {
+bool append_token(Token **tokens, Token token, int *token_count, int *tokens_capacity)
+{
     if (*token_count >= *tokens_capacity) {
         int new_capacity = (*tokens_capacity) * 2;
         Token *temp_tokens = realloc(*tokens, new_capacity * sizeof(Token));
@@ -135,7 +134,8 @@ bool append_token(Token **tokens, Token token, int *token_count,
     return true;
 }
 
-void free_tokens(Token *tokens, int count) {
+void free_tokens(Token *tokens, int count)
+{
     for (int i = 0; i < count; i++) {
         free(tokens[i].value);
     }
@@ -143,27 +143,28 @@ void free_tokens(Token *tokens, int count) {
     free(tokens);
 }
 
-char *parse_word(const char *line, int *current_index) {
-    int start_index = *current_index;
-    bool is_quoted = false;
+char *separate_word(const char *line, int *current_index)
+{
+    char *word = malloc(strlen(line) + 1);
+    if (!word)
+        return NULL;
 
+    int i = 0;
+    bool is_quoted = false;
     while (line[*current_index] != '\0') {
         if (line[*current_index] == '"') {
             is_quoted = !is_quoted;
+            (*current_index)++;
+            continue;
         }
 
-        if (!is_quoted && strchr(DELIMITERS, line[*current_index])) {
+        if (!is_quoted && strchr(DELIMITERS, line[*current_index]))
             break;
-        }
 
+        word[i] = line[*current_index];
         (*current_index)++;
+        i++;
     }
-
-    size_t length = *current_index - start_index;
-    char *word = strndup(&line[start_index], length);
-    if (!word) {
-        return NULL;
-    }
-
+    word[i] = '\0';
     return word;
 }
