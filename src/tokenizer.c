@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -18,7 +17,6 @@ Token *tokenize(char *line, int *token_count)
     int tokens_capacity = 5;
     Token *tokens = malloc(tokens_capacity * sizeof(Token));
     if (!tokens) {
-        perror("SquirrelShell: tokenize: malloc error");
         return NULL;
     }
 
@@ -97,7 +95,6 @@ Token *tokenize(char *line, int *token_count)
             break;
         }
 
-        // Allocate space for additional tokens.
         if (!append_token(&tokens, token, token_count, &tokens_capacity)) {
             free_tokens(tokens, *token_count);
             return NULL;
@@ -121,7 +118,6 @@ bool append_token(Token **tokens, Token token, int *token_count, int *tokens_cap
         int new_capacity = (*tokens_capacity) * 2;
         Token *temp_tokens = realloc(*tokens, new_capacity * sizeof(Token));
         if (!temp_tokens) {
-            perror("SquirrelShell: append_token: realloc error");
             return false;
         }
         *tokens = temp_tokens;
