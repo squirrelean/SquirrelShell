@@ -1,15 +1,14 @@
+#include "input.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include "input.h"
+#include <string.h>
 #include <unistd.h>
 
-// Prototypes.
 void print_prompt(size_t full_command_size);
 bool ensure_matching_quotes(char *line, ssize_t chars_read, int *quote_count);
 
-char* read_line()
+char *read_line(void)
 {
     size_t buffer_size = 0;
     char *line = NULL;
@@ -20,45 +19,33 @@ char* read_line()
 
     int quote_count = 0;
 
-    while(true)
-    {
-        print_prompt(full_command_size);
-
+    while (true) {
         chars_read = getline(&line, &buffer_size, stdin);
-        if (chars_read == -1 || line[0] == '\n')
-        {
+        if (chars_read == -1 || line[0] == '\n') {
             free(line);
             free(full_command);
             return NULL;
         }
 
-        // Strip newline.
-        if (chars_read > 0 && line[chars_read - 1] == '\n')
-        {
+        if (chars_read > 0 && line[chars_read - 1] == '\n') {
             line[chars_read - 1] = '\0';
             chars_read--;
         }
 
-        // Check for trailing backslash.
         bool multi_line = false;
-        if (chars_read > 0 && line[chars_read - 1] == '\\')
-        {
+        if (chars_read > 0 && line[chars_read - 1] == '\\') {
             line[chars_read - 1] = '\0';
             chars_read--;
             multi_line = true;
         }
 
-        if (ensure_matching_quotes(line, chars_read, &quote_count))
-        {
+        if (ensure_matching_quotes(line, chars_read, &quote_count)) {
             multi_line = true;
         }
 
-        // Allocate additional space for new input.
         size_t new_size = full_command_size + chars_read + 2;
         char *temp = realloc(full_command, new_size);
-        if (!temp)
-        {
-            perror("SquirrelShell: read_line: realloc failure");
+        if (!temp) {
             free(line);
             free(full_command);
             return NULL;
@@ -68,17 +55,13 @@ char* read_line()
         memcpy(full_command + full_command_size, line, chars_read);
         full_command_size += chars_read;
 
-        // Separate new command with a space char.
-        if (multi_line)
-        {
+        if (multi_line) {
             full_command[full_command_size] = ' ';
             full_command_size++;
-        }
-        else
-        {
+            printf(">> ");
+        } else {
             break;
         }
-
     }
 
     free(line);
@@ -87,29 +70,13 @@ char* read_line()
     return full_command;
 }
 
-
-void print_prompt(size_t full_command_size)
-{
-    if (!full_command_size)
-    {
-        printf("SquirrelShell@user: ");
-    }
-    else
-    {
-        printf(">");
-    }
-}
-
-
 bool ensure_matching_quotes(char *line, ssize_t chars_read, int *quote_count)
 {
-    for (int i = 0; i < chars_read; i++)
-    {
-        if (line[i] == '"')
-        {
+    for (int i = 0; i < chars_read; i++) {
+        if (line[i] == '"') {
             (*quote_count)++;
         }
     }
 
-    return (*quote_count)% 2 != 0;
+    return (*quote_count) % 2 != 0;
 }
