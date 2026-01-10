@@ -46,7 +46,7 @@ This allows students to focus on POSIX process control without needing full shel
 
 ## AST Visualization:
 To support learning and debugging, the shell includes:
-- printast <command>
+- printast `<command>`
 
 This prints the AST representation of a command, allowing students to observe how shell syntax is parsed.
 
