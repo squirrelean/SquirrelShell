@@ -1,13 +1,13 @@
 # SquirrelShell
 
-## SquirrelShell is a simple Unix shell written in C designed specifically for teaching systems programming concepts, including parsing, process control, and POSIX calls.
-## It is structured to be easy to read, modular, and assignment-friendly, making it suitable for lab use.
+SquirrelShell is a simple Unix shell written in C designed specifically for teaching systems programming concepts, including parsing, process control, and POSIX calls.
+It is structured to be easy to read, modular, and assignment-friendly, making it suitable for lab use.
 
-## The project is actively being adapted into coursework, including a planned fork where students implement portions of the execution engine to practice POSIX system calls.
+The project is actively being adapted into coursework, including a planned fork where students implement portions of the execution engine to practice POSIX system calls.
 
 
 ## Educational Goals:  
-### SquirrelShell is designed to help students learn:
+SquirrelShell is designed to help students learn:
 - Lexical analysis
 - Top-down parsing
 - Abstract Syntax Tree construction
@@ -32,7 +32,7 @@
 
 
 ## Assignments:
-### Planned instructional adaptations include:
+Planned instructional adaptations include:
 - Providing students with a complete tokenizer and parser
 - Replacing executor logic with instructional comments or light pseudocode
 - Assignments will focus on:
@@ -41,15 +41,14 @@
     - Redirection using dup2
     - Process synchronization
 
-### This allows students to focus on POSIX process control without needing full shell design knowledge.
+This allows students to focus on POSIX process control without needing full shell design knowledge.
 
 
 ## AST Visualization:
-## To support learning and debugging, the shell includes:
+To support learning and debugging, the shell includes:
+- printast <command>
 
-### printast <command>
-
-## This prints the AST representation of a command, allowing students to observe how shell syntax is parsed.
+This prints the AST representation of a command, allowing students to observe how shell syntax is parsed.
 
 
 ## Future Features:
@@ -70,4 +69,3 @@ make
 
 ### Run:
 ./squirrelshell
-
