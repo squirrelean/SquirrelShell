@@ -1,13 +1,13 @@
-SquirrelShell
+# SquirrelShell
 
-SquirrelShell is a simple Unix shell written in C designed specifically for teaching systems programming concepts, including parsing, process control, and POSIX calls.
-It is structured to be easy to read, modular, and assignment-friendly, making it suitable for lab use.
+## SquirrelShell is a simple Unix shell written in C designed specifically for teaching systems programming concepts, including parsing, process control, and POSIX calls.
+## It is structured to be easy to read, modular, and assignment-friendly, making it suitable for lab use.
 
-The project is actively being adapted into coursework, including a planned fork where students implement portions of the execution engine to practice POSIX system calls.
+## The project is actively being adapted into coursework, including a planned fork where students implement portions of the execution engine to practice POSIX system calls.
 
 
-Educational Goals:
-SquirrelShell is designed to help students learn:
+## Educational Goals:  
+### SquirrelShell is designed to help students learn:
 - Lexical analysis
 - Top-down parsing
 - Abstract Syntax Tree construction
@@ -16,7 +16,7 @@ SquirrelShell is designed to help students learn:
 - File descriptor redirection
 
 
-Features:
+## Features:
 - Tokenizer with quotation handling
 - Recursive descent parser producing a left-associative Abstract Syntax Tree
 - Execution engine based on AST traversal
@@ -31,8 +31,8 @@ Features:
     - printast (prints parsed AST to better visualize the data structure)
 
 
-Assignments:
-Planned instructional adaptations include:
+## Assignments:
+### Planned instructional adaptations include:
 - Providing students with a complete tokenizer and parser
 - Replacing executor logic with instructional comments or light pseudocode
 - Assignments will focus on:
@@ -41,32 +41,33 @@ Planned instructional adaptations include:
     - Redirection using dup2
     - Process synchronization
 
-This allows students to focus on POSIX process control without needing full shell design knowledge.
+### This allows students to focus on POSIX process control without needing full shell design knowledge.
 
 
-AST Visualization:
-To support learning and debugging, the shell includes:\
+## AST Visualization:
+## To support learning and debugging, the shell includes:
 
-printast <command>
+### printast <command>
 
-This prints the AST representation of a command, allowing students to observe how shell syntax is parsed.
+## This prints the AST representation of a command, allowing students to observe how shell syntax is parsed.
 
 
-Future Features:
+## Future Features:
 - Background execution
 - Additional assignment templates
 - Automated tests for student assignments
 
 
-Requirements:
+## Build Instructions 
+### Requirements:
 - POSIX-compliant operating system
 - POSIX terminal and process model
 - GCC
 - Make
 
-Build:
+### Build:
 make
 
-Run:
+### Run:
 ./squirrelshell
 
