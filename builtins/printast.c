@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "command_syntax_tree.h"
+#include "parser.h"
+#include "tokenizer.h"
 
 void print_tree(ASTNode *node, bool node_end, char *outline);
 void print_tree_design(int dist, bool node_end);
@@ -15,32 +17,41 @@ char *create_new_outline(char *outline, bool node_end);
 #define SEPARATOR "|   "
 #define INDENT_SIZE 5
 
-void print_ast(ASTNode *ast)
+void print_ast(char *args)
 {
+    int token_count = 0;
+    Token *tokens = tokenize(args, &token_count);
+    if (!tokens)
+        return;
+
+    ASTNode *ast_root = parse_token(tokens, token_count);
+    if (!ast_root) {
+        free_tokens(tokens, token_count);
+        return;
+    }
+
     bool node_end = true;
     char *outline = "";
-    print_tree(ast, node_end, outline);
+    print_tree(ast_root, node_end, outline);
+
+    free_tokens(tokens, token_count);
+    free_ast(ast_root);
 }
 
 void print_tree(ASTNode *node, bool node_end, char *outline)
 {
-    if (!node) {
-        printf("There is no tree to print");
+    if (!node)
         return;
-    }
 
     printf("%s", outline);
-    if (node_end) {
+    if (node_end)
         printf("%s", BRANCH_END);
-    } else {
+    else
         printf("%s", BRANCH_REG);
-    }
 
     char *new_outline = create_new_outline(outline, node_end);
-    if (!new_outline) {
-        fprintf(stderr, "print_tree: malloc failure");
+    if (!new_outline)
         return;
-    }
 
     if (node->type == NODE_COMMAND) {
         printf("COMMAND:");
