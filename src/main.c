@@ -16,6 +16,7 @@ char *global_allocated_line = NULL;
 Token *global_allocated_tokens = NULL;
 int global_allocated_token_count = 0;
 ASTNode *global_allocated_ast = NULL;
+int global_command_status = 0;
 
 const char *get_user_name();
 
